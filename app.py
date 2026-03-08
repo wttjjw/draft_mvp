@@ -1,5 +1,3 @@
-# pip install streamlit pandas
-
 import streamlit as st
 import pandas as pd
 import random
@@ -11,53 +9,88 @@ st.set_page_config(
 )
 
 # ------------------------------------------------
-# STYLE
+# STYLE (фикс цвета текста)
 # ------------------------------------------------
 
 st.markdown("""
 <style>
 
 .stApp{
-background:#f4f6fb;
-color:#1f2933;
+background-color:#f4f6fb;
+color:#111827;
 }
+
+/* основной контейнер */
 
 .block-container{
 max-width:900px;
 margin:auto;
 }
 
+/* текст */
+
+h1,h2,h3,h4,h5,p,label,span,div{
+color:#111827 !important;
+}
+
+/* radio / select */
+
+.stRadio label,
+.stSelectbox label{
+color:#111827 !important;
+}
+
+/* input */
+
+input, textarea{
+color:#111827 !important;
+background:white !important;
+}
+
+/* dropdown */
+
+.stSelectbox div{
+color:#111827 !important;
+}
+
+/* radio options */
+
+.stRadio div{
+color:#111827 !important;
+}
+
+/* header card */
+
 .header-card{
 background:white;
 padding:40px;
 border-radius:16px;
-box-shadow:0 10px 30px rgba(0,0,0,0.08);
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
 text-align:center;
-margin-bottom:25px;
+margin-bottom:30px;
 }
 
 .header-title{
-font-size:36px;
+font-size:34px;
 font-weight:700;
 color:#111827;
 }
 
 .header-sub{
-color:#6b7280;
+color:#4b5563;
 }
 
-/* city tags */
+/* city buttons */
 
-.city-btn button{
+.stButton button{
 background:white;
-color:#374151;
-border:1px solid #e5e7eb;
+color:#111827;
+border:1px solid #d1d5db;
 border-radius:20px;
-padding:6px 16px;
-margin:4px;
+padding:8px 16px;
 }
 
-.city-btn button:hover{
+.stButton button:hover{
 background:#6366f1;
 color:white;
 }
@@ -66,19 +99,19 @@ color:white;
 
 .place-card{
 background:white;
-padding:25px;
+padding:20px;
 border-radius:14px;
 box-shadow:0 4px 14px rgba(0,0,0,0.08);
-margin-bottom:18px;
+margin-bottom:15px;
 }
 
 .place-title{
-font-size:20px;
+font-size:18px;
 font-weight:600;
 }
 
 .place-desc{
-color:#4b5563;
+color:#374151;
 }
 
 /* timeline */
@@ -89,13 +122,8 @@ padding-left:15px;
 }
 
 .timeline-step{
-margin-bottom:12px;
-}
-
-.stButton button{
-background:#6366f1;
-color:white;
-border-radius:8px;
+margin-bottom:10px;
+color:#111827;
 }
 
 </style>
@@ -112,25 +140,23 @@ if "route" not in st.session_state:
     st.session_state.route = None
 
 # ------------------------------------------------
-# TOURIST CITIES
+# CITIES
 # ------------------------------------------------
 
-tourist_cities = [
-
+cities = [
 "Москва","Санкт-Петербург","Казань","Сочи","Калининград",
 "Владивосток","Екатеринбург","Новосибирск","Нижний Новгород",
 "Самара","Краснодар","Ростов-на-Дону","Иркутск","Мурманск",
 "Ярославль","Суздаль","Владимир","Тула","Кострома","Псков",
 "Великий Новгород","Астрахань","Уфа","Челябинск","Пермь",
 "Томск","Красноярск","Архангельск","Калуга","Смоленск"
-
 ]
 
 # ------------------------------------------------
-# DEMO PLACES
+# PLACES
 # ------------------------------------------------
 
-places_db = [
+places = [
 
 {"name":"Главная площадь","desc":"Исторический центр города","time":40,"lat":55.751,"lon":37.618,"icon":"🏛"},
 {"name":"Городской парк","desc":"Популярное место для прогулок","time":90,"lat":55.760,"lon":37.620,"icon":"🌳"},
@@ -155,7 +181,7 @@ st.markdown("""
 st.progress(st.session_state.step/3)
 
 # ------------------------------------------------
-# STEP 1 — CITY CLOUD
+# STEP 1
 # ------------------------------------------------
 
 if st.session_state.step == 1:
@@ -164,7 +190,7 @@ if st.session_state.step == 1:
 
     cols = st.columns(5)
 
-    for i,city in enumerate(tourist_cities):
+    for i,city in enumerate(cities):
 
         with cols[i % 5]:
 
@@ -173,8 +199,6 @@ if st.session_state.step == 1:
                 st.session_state.city = city
                 st.session_state.step = 2
                 st.rerun()
-
-    st.divider()
 
     custom_city = st.text_input("Или введите свой город")
 
@@ -186,12 +210,8 @@ if st.session_state.step == 1:
             st.session_state.step = 2
             st.rerun()
 
-        else:
-
-            st.warning("Введите город или выберите из списка")
-
 # ------------------------------------------------
-# STEP 2 — QUIZ
+# STEP 2
 # ------------------------------------------------
 
 elif st.session_state.step == 2:
@@ -207,37 +227,21 @@ elif st.session_state.step == 2:
         "Что интереснее",
         [
             "История и архитектура",
-            "Еда и рестораны",
+            "Еда",
             "Природа",
             "Музеи",
             "Ночная жизнь"
         ]
     )
 
-    company = st.selectbox(
-        "С кем путешествуете",
-        ["Один","Вдвоем","С семьей"]
-    )
+    if st.button("Построить маршрут"):
 
-    col1,col2 = st.columns(2)
-
-    with col1:
-
-        if st.button("Назад"):
-
-            st.session_state.step = 1
-            st.rerun()
-
-    with col2:
-
-        if st.button("Построить маршрут"):
-
-            st.session_state.route = random.sample(places_db,5)
-            st.session_state.step = 3
-            st.rerun()
+        st.session_state.route = random.sample(places,5)
+        st.session_state.step = 3
+        st.rerun()
 
 # ------------------------------------------------
-# STEP 3 — ROUTE
+# STEP 3
 # ------------------------------------------------
 
 elif st.session_state.step == 3:
@@ -246,32 +250,32 @@ elif st.session_state.step == 3:
 
     route = st.session_state.route
 
-    for place in route:
+    for p in route:
 
         st.markdown(f"""
         <div class="place-card">
-        <div class="place-title">{place["icon"]} {place["name"]}</div>
-        <div class="place-desc">{place["desc"]}</div>
-        ⏱ {place["time"]} минут
+        <div class="place-title">{p["icon"]} {p["name"]}</div>
+        <div class="place-desc">{p["desc"]}</div>
+        ⏱ {p["time"]} минут
         </div>
         """, unsafe_allow_html=True)
 
-    st.subheader("🗺 Карта маршрута")
-
     df = pd.DataFrame(route)
+
+    st.subheader("🗺 Карта")
 
     st.map(df[["lat","lon"]])
 
-    st.subheader("📅 Таймлайн")
+    st.subheader("📅 План дня")
 
     time = 9
 
     st.markdown('<div class="timeline">', unsafe_allow_html=True)
 
-    for place in route:
+    for p in route:
 
         st.markdown(
-        f'<div class="timeline-step">{time}:00 — {place["name"]}</div>',
+        f'<div class="timeline-step">{time}:00 — {p["name"]}</div>',
         unsafe_allow_html=True
         )
 
@@ -279,7 +283,7 @@ elif st.session_state.step == 3:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("🔄 Новый маршрут"):
+    if st.button("Новый маршрут"):
 
         st.session_state.step = 1
         st.session_state.route = None
