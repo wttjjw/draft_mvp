@@ -1,13 +1,13 @@
-# pip install streamlit openai
+# pip install streamlit openai pandas
 
 import streamlit as st
 from openai import OpenAI
-import os
 import json
+import pandas as pd
 
-# --------------------------
+# ------------------------------------------------
 # PAGE CONFIG
-# --------------------------
+# ------------------------------------------------
 
 st.set_page_config(
     page_title="AI Travel Planner",
@@ -15,70 +15,96 @@ st.set_page_config(
     layout="centered"
 )
 
-# --------------------------
-# STYLES
-# --------------------------
+# ------------------------------------------------
+# LIGHT STYLE
+# ------------------------------------------------
 
 st.markdown("""
 <style>
 
-.stApp {
-background:#f6f8fb;
+.stApp{
+background:#f4f6fb;
 }
 
-.block-container {
+.block-container{
 max-width:720px;
 margin:auto;
 }
 
-.card {
+.header-card{
 background:white;
-padding:30px;
+padding:35px;
 border-radius:16px;
 box-shadow:0 10px 30px rgba(0,0,0,0.08);
 margin-bottom:20px;
-}
-
-.title {
-font-size:32px;
-font-weight:700;
 text-align:center;
 }
 
-.subtitle {
-text-align:center;
-color:#666;
-margin-top:8px;
-}
-
-.place-card {
+.place-card{
 background:white;
 padding:20px;
 border-radius:14px;
-box-shadow:0 5px 15px rgba(0,0,0,0.06);
+box-shadow:0 4px 12px rgba(0,0,0,0.07);
 margin-bottom:15px;
+}
+
+button[kind="primary"]{
+background:#6c63ff;
+border-radius:8px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# --------------------------
-# DEEPSEEK CLIENT
-# --------------------------
+# ------------------------------------------------
+# API KEY (SAFE)
+# ------------------------------------------------
+
+try:
+    api_key = st.secrets["sk-6c4320e4cf78468484e17cc30e018c84"]
+except:
+    api_key = None
+
+if not api_key:
+    st.error("Добавьте DEEPSEEK_API_KEY в secrets или env")
+    st.stop()
 
 client = OpenAI(
-    api_key=os.getenv("sk-6c4320e4cf78468484e17cc30e018c84"),
+    api_key=api_key,
     base_url="https://api.deepseek.com"
 )
 
-# --------------------------
-# AI FUNCTION
-# --------------------------
+# ------------------------------------------------
+# SESSION STATE
+# ------------------------------------------------
+
+if "step" not in st.session_state:
+    st.session_state.step = 1
+
+if "route" not in st.session_state:
+    st.session_state.route = None
+
+# ------------------------------------------------
+# HEADER
+# ------------------------------------------------
+
+st.markdown("""
+<div class="header-card">
+<h1>🌍 AI Travel Planner</h1>
+<p>Создайте персональный маршрут путешествия</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.progress(st.session_state.step/3)
+
+# ------------------------------------------------
+# AI GENERATION
+# ------------------------------------------------
 
 def generate_route(city, answers):
 
     prompt = f"""
-Создай туристический маршрут по городу {city}.
+Создай маршрут по городу {city}.
 
 Предпочтения:
 Темп: {answers['pace']}
@@ -88,11 +114,11 @@ def generate_route(city, answers):
 Верни строго JSON:
 
 [
-{{"name":"место","desc":"описание","time":60}},
-{{"name":"место","desc":"описание","time":90}}
+{{"name":"место","desc":"описание","time":60,"lat":59.9,"lon":30.3}},
+{{"name":"место","desc":"описание","time":90,"lat":59.9,"lon":30.3}}
 ]
 
-Список из 5 мест.
+5 мест.
 """
 
     response = client.chat.completions.create(
@@ -102,42 +128,25 @@ def generate_route(city, answers):
 
     text = response.choices[0].message.content
 
-    return json.loads(text)
+    # очистка markdown
+    text = text.replace("```json","").replace("```","")
 
-# --------------------------
-# SESSION STATE
-# --------------------------
+    data = json.loads(text)
 
-if "step" not in st.session_state:
-    st.session_state.step = 1
+    return data
 
-if "route" not in st.session_state:
-    st.session_state.route = None
-
-# --------------------------
-# HEADER
-# --------------------------
-
-st.markdown("""
-<div class="card">
-<div class="title">🌍 AI Travel Planner</div>
-<div class="subtitle">
-Создайте персональный маршрут путешествия
-</div>
-</div>
-""", unsafe_allow_html=True)
-
-st.progress(st.session_state.step / 3)
-
-# --------------------------
-# STEP 1 — CITY
-# --------------------------
+# ------------------------------------------------
+# STEP 1
+# ------------------------------------------------
 
 if st.session_state.step == 1:
 
-    st.markdown("### 🏙 Шаг 1. Выберите город")
+    st.subheader("🏙 Выберите город")
 
-    city = st.text_input("Введите город")
+    city = st.text_input(
+        "Город",
+        placeholder="Например: Санкт-Петербург"
+    )
 
     if st.button("Далее"):
 
@@ -145,21 +154,20 @@ if st.session_state.step == 1:
             st.session_state.city = city
             st.session_state.step = 2
             st.rerun()
-
         else:
             st.warning("Введите город")
 
-# --------------------------
-# STEP 2 — QUIZ
-# --------------------------
+# ------------------------------------------------
+# STEP 2
+# ------------------------------------------------
 
 elif st.session_state.step == 2:
 
-    st.markdown("### 🧭 Шаг 2. Предпочтения")
+    st.subheader("🧭 Предпочтения")
 
     pace = st.radio(
         "Темп отдыха",
-        ["Активный", "Размеренный", "Смешанный"]
+        ["Активный","Размеренный","Смешанный"]
     )
 
     interest = st.selectbox(
@@ -175,43 +183,39 @@ elif st.session_state.step == 2:
 
     company = st.selectbox(
         "С кем путешествуете",
-        [
-            "Один",
-            "Вдвоем",
-            "С семьей"
-        ]
+        ["Один","Вдвоем","С семьей"]
     )
 
-    col1, col2 = st.columns(2)
+    col1,col2 = st.columns(2)
 
     with col1:
         if st.button("Назад"):
-            st.session_state.step = 1
+            st.session_state.step=1
             st.rerun()
 
     with col2:
         if st.button("Создать маршрут"):
 
-            st.session_state.answers = {
-                "pace": pace,
-                "interest": interest,
-                "company": company
+            st.session_state.answers={
+                "pace":pace,
+                "interest":interest,
+                "company":company
             }
 
-            st.session_state.step = 3
+            st.session_state.step=3
             st.rerun()
 
-# --------------------------
-# STEP 3 — RESULT
-# --------------------------
+# ------------------------------------------------
+# STEP 3
+# ------------------------------------------------
 
 elif st.session_state.step == 3:
 
-    st.markdown("### 🤖 Генерация маршрута")
+    st.subheader("🤖 Генерация маршрута")
 
     if st.session_state.route is None:
 
-        with st.spinner("ИИ ищет лучшие места..."):
+        with st.spinner("ИИ анализирует город..."):
 
             try:
 
@@ -229,7 +233,7 @@ elif st.session_state.step == 3:
 
     if st.session_state.route:
 
-        st.markdown("## 📍 Ваш маршрут")
+        st.markdown("## 📍 Маршрут")
 
         for place in st.session_state.route:
 
@@ -241,7 +245,23 @@ elif st.session_state.step == 3:
             </div>
             """, unsafe_allow_html=True)
 
-        if st.button("Создать новый маршрут"):
+        # ---------------------------
+        # MAP
+        # ---------------------------
+
+        try:
+
+            df = pd.DataFrame(st.session_state.route)
+
+            if "lat" in df.columns:
+
+                st.map(df[["lat","lon"]])
+
+        except:
+            pass
+
+        if st.button("🔄 Новый маршрут"):
+
             st.session_state.step = 1
             st.session_state.route = None
             st.rerun()
