@@ -16,15 +16,11 @@ st.set_page_config(
 )
 
 # --------------------------
-# LIGHT THEME CSS
+# STYLES
 # --------------------------
 
 st.markdown("""
 <style>
-
-body {
-background:#f6f8fb;
-}
 
 .stApp {
 background:#f6f8fb;
@@ -63,13 +59,50 @@ box-shadow:0 5px 15px rgba(0,0,0,0.06);
 margin-bottom:15px;
 }
 
-button[kind="primary"] {
-background:#6c63ff;
-border-radius:10px;
-}
-
 </style>
 """, unsafe_allow_html=True)
+
+# --------------------------
+# DEEPSEEK CLIENT
+# --------------------------
+
+client = OpenAI(
+    api_key=os.getenv("sk-6c4320e4cf78468484e17cc30e018c84"),
+    base_url="https://api.deepseek.com"
+)
+
+# --------------------------
+# AI FUNCTION
+# --------------------------
+
+def generate_route(city, answers):
+
+    prompt = f"""
+Создай туристический маршрут по городу {city}.
+
+Предпочтения:
+Темп: {answers['pace']}
+Интерес: {answers['interest']}
+Компания: {answers['company']}
+
+Верни строго JSON:
+
+[
+{{"name":"место","desc":"описание","time":60}},
+{{"name":"место","desc":"описание","time":90}}
+]
+
+Список из 5 мест.
+"""
+
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[{"role":"user","content":prompt}]
+    )
+
+    text = response.choices[0].message.content
+
+    return json.loads(text)
 
 # --------------------------
 # SESSION STATE
@@ -94,8 +127,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-progress = st.session_state.step / 3
-st.progress(progress)
+st.progress(st.session_state.step / 3)
 
 # --------------------------
 # STEP 1 — CITY
@@ -105,10 +137,7 @@ if st.session_state.step == 1:
 
     st.markdown("### 🏙 Шаг 1. Выберите город")
 
-    city = st.text_input(
-        "Введите город",
-        placeholder="Например: Санкт-Петербург"
-    )
+    city = st.text_input("Введите город")
 
     if st.button("Далее"):
 
@@ -126,15 +155,15 @@ if st.session_state.step == 1:
 
 elif st.session_state.step == 2:
 
-    st.markdown("### 🧭 Шаг 2. Расскажите о предпочтениях")
+    st.markdown("### 🧭 Шаг 2. Предпочтения")
 
     pace = st.radio(
-        "Какой темп отдыха предпочитаете?",
+        "Темп отдыха",
         ["Активный", "Размеренный", "Смешанный"]
     )
 
     interest = st.selectbox(
-        "Что вас интересует больше всего?",
+        "Интерес",
         [
             "История и архитектура",
             "Еда и рестораны",
@@ -145,7 +174,7 @@ elif st.session_state.step == 2:
     )
 
     company = st.selectbox(
-        "С кем путешествуете?",
+        "С кем путешествуете",
         [
             "Один",
             "Вдвоем",
@@ -161,7 +190,7 @@ elif st.session_state.step == 2:
             st.rerun()
 
     with col2:
-        if st.button("Сгенерировать маршрут"):
+        if st.button("Создать маршрут"):
 
             st.session_state.answers = {
                 "pace": pace,
@@ -173,48 +202,6 @@ elif st.session_state.step == 2:
             st.rerun()
 
 # --------------------------
-# DEEPSEEK CLIENT
-# --------------------------
-
-client = OpenAI(
-    api_key=os.getenv("sk-6c4320e4cf78468484e17cc30e018c84"),
-    base_url="https://api.deepseek.com"
-)
-
-# --------------------------
-# AI FUNCTION
-# --------------------------
-
-def generate_route(city, answers):
-
-    prompt = f"""
-Создай туристический маршрут по городу {city}.
-
-Предпочтения пользователя:
-Темп: {answers['pace']}
-Интерес: {answers['interest']}
-Компания: {answers['company']}
-
-Верни ответ строго в JSON:
-
-[
-{{"name":"место","desc":"описание","time":60}},
-{{"name":"место","desc":"описание","time":90}}
-]
-
-5 мест.
-"""
-
-    response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=[{"role":"user","content":prompt}]
-    )
-
-    text = response.choices[0].message.content
-
-    return json.loads(text)
-
-# --------------------------
 # STEP 3 — RESULT
 # --------------------------
 
@@ -224,7 +211,7 @@ elif st.session_state.step == 3:
 
     if st.session_state.route is None:
 
-        with st.spinner("ИИ подбирает лучшие места..."):
+        with st.spinner("ИИ ищет лучшие места..."):
 
             try:
 
@@ -235,8 +222,10 @@ elif st.session_state.step == 3:
 
                 st.session_state.route = route
 
-            except:
-                st.error("Ошибка генерации маршрута")
+            except Exception as e:
+
+                st.error("Ошибка генерации")
+                st.write(e)
 
     if st.session_state.route:
 
@@ -248,12 +237,11 @@ elif st.session_state.step == 3:
             <div class="place-card">
             <h3>📌 {place["name"]}</h3>
             <p>{place["desc"]}</p>
-            ⏱ Время посещения: {place["time"]} мин
+            ⏱ {place["time"]} минут
             </div>
             """, unsafe_allow_html=True)
 
-        if st.button("🔄 Создать новый маршрут"):
-
+        if st.button("Создать новый маршрут"):
             st.session_state.step = 1
             st.session_state.route = None
             st.rerun()
