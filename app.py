@@ -15,16 +15,24 @@ st.set_page_config(
 )
 
 # ------------------------------------------------
-# LIGHT UI STYLE
+# FORCE LIGHT THEME + TEXT COLORS
 # ------------------------------------------------
 
 st.markdown("""
 <style>
 
+/* GLOBAL */
+
+html, body, [class*="css"] {
+    color: #1f2933 !important;
+}
+
 .stApp {
 background-color:#f4f6fb;
 color:#1f2933;
 }
+
+/* container */
 
 .block-container{
 max-width:850px;
@@ -36,7 +44,7 @@ margin:auto;
 .header-card{
 background:white;
 padding:40px;
-border-radius:18px;
+border-radius:16px;
 box-shadow:0 10px 30px rgba(0,0,0,0.08);
 text-align:center;
 margin-bottom:25px;
@@ -52,6 +60,33 @@ color:#111827;
 color:#6b7280;
 }
 
+/* form text */
+
+label, .stRadio label, .stSelectbox label {
+color:#111827 !important;
+font-weight:500;
+}
+
+/* radio text */
+
+.stRadio div{
+color:#111827 !important;
+}
+
+/* selectbox */
+
+[data-baseweb="select"]{
+color:black !important;
+background:white !important;
+}
+
+/* inputs */
+
+input{
+color:black !important;
+background:white !important;
+}
+
 /* place cards */
 
 .place-card{
@@ -59,7 +94,7 @@ background:white;
 padding:25px;
 border-radius:14px;
 box-shadow:0 4px 14px rgba(0,0,0,0.08);
-margin-bottom:20px;
+margin-bottom:18px;
 }
 
 .place-title{
@@ -77,7 +112,6 @@ color:#4b5563;
 .timeline{
 border-left:3px solid #6366f1;
 padding-left:15px;
-margin-top:20px;
 }
 
 .timeline-step{
@@ -114,58 +148,23 @@ if "route" not in st.session_state:
     st.session_state.route = None
 
 # ------------------------------------------------
-# DEMO DATA (вместо AI)
+# DEMO DATA
 # ------------------------------------------------
 
 places_db = [
-    {
-        "name":"Центральная площадь",
-        "desc":"Историческое сердце города",
-        "time":40,
-        "lat":55.751244,
-        "lon":37.618423,
-        "icon":"🏛"
-    },
-    {
-        "name":"Городской парк",
-        "desc":"Большой парк для прогулок",
-        "time":90,
-        "lat":55.7600,
-        "lon":37.6200,
-        "icon":"🌳"
-    },
-    {
-        "name":"Главный музей",
-        "desc":"Коллекция искусства и истории",
-        "time":120,
-        "lat":55.7520,
-        "lon":37.6170,
-        "icon":"🖼"
-    },
-    {
-        "name":"Пешеходная улица",
-        "desc":"Популярное место с кафе",
-        "time":60,
-        "lat":55.7500,
-        "lon":37.6150,
-        "icon":"☕"
-    },
-    {
-        "name":"Смотровая площадка",
-        "desc":"Лучший вид на город",
-        "time":30,
-        "lat":55.7490,
-        "lon":37.6220,
-        "icon":"📸"
-    },
-    {
-        "name":"Рынок еды",
-        "desc":"Местная кухня и рестораны",
-        "time":70,
-        "lat":55.7480,
-        "lon":37.6210,
-        "icon":"🍜"
-    }
+
+{"name":"Центральная площадь","desc":"Историческое сердце города","time":40,"lat":55.751244,"lon":37.618423,"icon":"🏛"},
+
+{"name":"Городской парк","desc":"Большой парк для прогулок","time":90,"lat":55.7600,"lon":37.6200,"icon":"🌳"},
+
+{"name":"Главный музей","desc":"Коллекция искусства","time":120,"lat":55.7520,"lon":37.6170,"icon":"🖼"},
+
+{"name":"Пешеходная улица","desc":"Популярное место с кафе","time":60,"lat":55.7500,"lon":37.6150,"icon":"☕"},
+
+{"name":"Смотровая площадка","desc":"Лучший вид на город","time":30,"lat":55.7490,"lon":37.6220,"icon":"📸"},
+
+{"name":"Рынок еды","desc":"Местная кухня","time":70,"lat":55.7480,"lon":37.6210,"icon":"🍜"}
+
 ]
 
 # ------------------------------------------------
@@ -182,7 +181,7 @@ st.markdown("""
 st.progress(st.session_state.step / 3)
 
 # ------------------------------------------------
-# STEP 1 — CITY
+# STEP 1
 # ------------------------------------------------
 
 if st.session_state.step == 1:
@@ -197,14 +196,17 @@ if st.session_state.step == 1:
     if st.button("Продолжить"):
 
         if city:
+
             st.session_state.city = city
             st.session_state.step = 2
             st.rerun()
+
         else:
+
             st.warning("Введите город")
 
 # ------------------------------------------------
-# STEP 2 — QUIZ
+# STEP 2
 # ------------------------------------------------
 
 elif st.session_state.step == 2:
@@ -235,11 +237,14 @@ elif st.session_state.step == 2:
     col1,col2 = st.columns(2)
 
     with col1:
+
         if st.button("Назад"):
+
             st.session_state.step = 1
             st.rerun()
 
     with col2:
+
         if st.button("Построить маршрут"):
 
             st.session_state.answers = {
@@ -254,7 +259,7 @@ elif st.session_state.step == 2:
             st.rerun()
 
 # ------------------------------------------------
-# STEP 3 — ROUTE
+# STEP 3
 # ------------------------------------------------
 
 elif st.session_state.step == 3:
@@ -273,9 +278,7 @@ elif st.session_state.step == 3:
         </div>
         """, unsafe_allow_html=True)
 
-    # ---------------------------
     # MAP
-    # ---------------------------
 
     st.subheader("🗺 Карта маршрута")
 
@@ -283,9 +286,7 @@ elif st.session_state.step == 3:
 
     st.map(df[["lat","lon"]])
 
-    # ---------------------------
     # TIMELINE
-    # ---------------------------
 
     st.subheader("📅 Таймлайн")
 
@@ -295,21 +296,16 @@ elif st.session_state.step == 3:
 
     for place in route:
 
-        st.markdown(f"""
-        <div class="timeline-step">
-        {time}:00 — {place["name"]}
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+        f'<div class="timeline-step">{time}:00 — {place["name"]}</div>',
+        unsafe_allow_html=True
+        )
 
         time += 1
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ---------------------------
-    # RESET
-    # ---------------------------
-
-    if st.button("🔄 Создать новый маршрут"):
+    if st.button("🔄 Новый маршрут"):
 
         st.session_state.step = 1
         st.session_state.route = None
