@@ -4,10 +4,6 @@ import streamlit as st
 import pandas as pd
 import random
 
-# ------------------------------------------------
-# PAGE CONFIG
-# ------------------------------------------------
-
 st.set_page_config(
     page_title="Travel Planner",
     page_icon="🌍",
@@ -15,31 +11,21 @@ st.set_page_config(
 )
 
 # ------------------------------------------------
-# FORCE LIGHT THEME + TEXT COLORS
+# STYLE
 # ------------------------------------------------
 
 st.markdown("""
 <style>
 
-/* GLOBAL */
-
-html, body, [class*="css"] {
-    color: #1f2933 !important;
-}
-
-.stApp {
-background-color:#f4f6fb;
+.stApp{
+background:#f4f6fb;
 color:#1f2933;
 }
 
-/* container */
-
 .block-container{
-max-width:850px;
+max-width:900px;
 margin:auto;
 }
-
-/* header */
 
 .header-card{
 background:white;
@@ -60,31 +46,20 @@ color:#111827;
 color:#6b7280;
 }
 
-/* form text */
+/* city tags */
 
-label, .stRadio label, .stSelectbox label {
-color:#111827 !important;
-font-weight:500;
+.city-btn button{
+background:white;
+color:#374151;
+border:1px solid #e5e7eb;
+border-radius:20px;
+padding:6px 16px;
+margin:4px;
 }
 
-/* radio text */
-
-.stRadio div{
-color:#111827 !important;
-}
-
-/* selectbox */
-
-[data-baseweb="select"]{
-color:black !important;
-background:white !important;
-}
-
-/* inputs */
-
-input{
-color:black !important;
-background:white !important;
+.city-btn button:hover{
+background:#6366f1;
+color:white;
 }
 
 /* place cards */
@@ -100,7 +75,6 @@ margin-bottom:18px;
 .place-title{
 font-size:20px;
 font-weight:600;
-color:#111827;
 }
 
 .place-desc{
@@ -116,29 +90,19 @@ padding-left:15px;
 
 .timeline-step{
 margin-bottom:12px;
-color:#374151;
 }
-
-/* buttons */
 
 .stButton button{
 background:#6366f1;
 color:white;
 border-radius:8px;
-padding:10px 18px;
-border:none;
-font-weight:600;
-}
-
-.stButton button:hover{
-background:#4f46e5;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------
-# SESSION STATE
+# SESSION
 # ------------------------------------------------
 
 if "step" not in st.session_state:
@@ -148,22 +112,32 @@ if "route" not in st.session_state:
     st.session_state.route = None
 
 # ------------------------------------------------
-# DEMO DATA
+# TOURIST CITIES
+# ------------------------------------------------
+
+tourist_cities = [
+
+"Москва","Санкт-Петербург","Казань","Сочи","Калининград",
+"Владивосток","Екатеринбург","Новосибирск","Нижний Новгород",
+"Самара","Краснодар","Ростов-на-Дону","Иркутск","Мурманск",
+"Ярославль","Суздаль","Владимир","Тула","Кострома","Псков",
+"Великий Новгород","Астрахань","Уфа","Челябинск","Пермь",
+"Томск","Красноярск","Архангельск","Калуга","Смоленск"
+
+]
+
+# ------------------------------------------------
+# DEMO PLACES
 # ------------------------------------------------
 
 places_db = [
 
-{"name":"Центральная площадь","desc":"Историческое сердце города","time":40,"lat":55.751244,"lon":37.618423,"icon":"🏛"},
-
-{"name":"Городской парк","desc":"Большой парк для прогулок","time":90,"lat":55.7600,"lon":37.6200,"icon":"🌳"},
-
-{"name":"Главный музей","desc":"Коллекция искусства","time":120,"lat":55.7520,"lon":37.6170,"icon":"🖼"},
-
-{"name":"Пешеходная улица","desc":"Популярное место с кафе","time":60,"lat":55.7500,"lon":37.6150,"icon":"☕"},
-
-{"name":"Смотровая площадка","desc":"Лучший вид на город","time":30,"lat":55.7490,"lon":37.6220,"icon":"📸"},
-
-{"name":"Рынок еды","desc":"Местная кухня","time":70,"lat":55.7480,"lon":37.6210,"icon":"🍜"}
+{"name":"Главная площадь","desc":"Исторический центр города","time":40,"lat":55.751,"lon":37.618,"icon":"🏛"},
+{"name":"Городской парк","desc":"Популярное место для прогулок","time":90,"lat":55.760,"lon":37.620,"icon":"🌳"},
+{"name":"Главный музей","desc":"Крупнейший музей города","time":120,"lat":55.752,"lon":37.617,"icon":"🖼"},
+{"name":"Пешеходная улица","desc":"Улица с кафе и ресторанами","time":60,"lat":55.750,"lon":37.615,"icon":"☕"},
+{"name":"Смотровая площадка","desc":"Лучший вид на город","time":30,"lat":55.749,"lon":37.622,"icon":"📸"},
+{"name":"Фудмаркет","desc":"Место с местной кухней","time":70,"lat":55.748,"lon":37.621,"icon":"🍜"}
 
 ]
 
@@ -178,35 +152,46 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.progress(st.session_state.step / 3)
+st.progress(st.session_state.step/3)
 
 # ------------------------------------------------
-# STEP 1
+# STEP 1 — CITY CLOUD
 # ------------------------------------------------
 
 if st.session_state.step == 1:
 
     st.subheader("🏙 Выберите город")
 
-    city = st.text_input(
-        "Введите город",
-        placeholder="Например: Москва"
-    )
+    cols = st.columns(5)
+
+    for i,city in enumerate(tourist_cities):
+
+        with cols[i % 5]:
+
+            if st.button(city):
+
+                st.session_state.city = city
+                st.session_state.step = 2
+                st.rerun()
+
+    st.divider()
+
+    custom_city = st.text_input("Или введите свой город")
 
     if st.button("Продолжить"):
 
-        if city:
+        if custom_city:
 
-            st.session_state.city = city
+            st.session_state.city = custom_city
             st.session_state.step = 2
             st.rerun()
 
         else:
 
-            st.warning("Введите город")
+            st.warning("Введите город или выберите из списка")
 
 # ------------------------------------------------
-# STEP 2
+# STEP 2 — QUIZ
 # ------------------------------------------------
 
 elif st.session_state.step == 2:
@@ -223,7 +208,7 @@ elif st.session_state.step == 2:
         [
             "История и архитектура",
             "Еда и рестораны",
-            "Природа и парки",
+            "Природа",
             "Музеи",
             "Ночная жизнь"
         ]
@@ -247,19 +232,12 @@ elif st.session_state.step == 2:
 
         if st.button("Построить маршрут"):
 
-            st.session_state.answers = {
-                "pace":pace,
-                "interest":interest,
-                "company":company
-            }
-
             st.session_state.route = random.sample(places_db,5)
-
             st.session_state.step = 3
             st.rerun()
 
 # ------------------------------------------------
-# STEP 3
+# STEP 3 — ROUTE
 # ------------------------------------------------
 
 elif st.session_state.step == 3:
@@ -278,15 +256,11 @@ elif st.session_state.step == 3:
         </div>
         """, unsafe_allow_html=True)
 
-    # MAP
-
     st.subheader("🗺 Карта маршрута")
 
     df = pd.DataFrame(route)
 
     st.map(df[["lat","lon"]])
-
-    # TIMELINE
 
     st.subheader("📅 Таймлайн")
 
