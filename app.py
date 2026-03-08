@@ -61,7 +61,7 @@ border-radius:8px;
 # ------------------------------------------------
 
 try:
-    api_key = st.secrets["sk-6c4320e4cf78468484e17cc30e018c84"]
+    api_key = st.secrets["DEEPSEEK_API_KEY"]
 except:
     api_key = None
 
