@@ -262,10 +262,6 @@ elif st.session_state.step == 3:
 
     df = pd.DataFrame(route)
 
-    st.subheader("🗺 Карта")
-
-    st.map(df[["lat","lon"]])
-
     st.subheader("📅 План дня")
 
     time = 9
