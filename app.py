@@ -1,13 +1,13 @@
-
+# pip install streamlit openai
 
 import streamlit as st
 from openai import OpenAI
-import json
 import os
+import json
 
-# ---------------------------
+# --------------------------
 # PAGE CONFIG
-# ---------------------------
+# --------------------------
 
 st.set_page_config(
     page_title="AI Travel Planner",
@@ -15,165 +15,245 @@ st.set_page_config(
     layout="centered"
 )
 
-# ---------------------------
-# STYLES
-# ---------------------------
+# --------------------------
+# LIGHT THEME CSS
+# --------------------------
 
 st.markdown("""
 <style>
 
 body {
-background-color:#f5f7fa;
+background:#f6f8fb;
 }
 
-.block-container{
+.stApp {
+background:#f6f8fb;
+}
+
+.block-container {
 max-width:720px;
 margin:auto;
 }
 
-.card{
+.card {
 background:white;
 padding:30px;
-border-radius:18px;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
+border-radius:16px;
+box-shadow:0 10px 30px rgba(0,0,0,0.08);
 margin-bottom:20px;
+}
+
+.title {
+font-size:32px;
+font-weight:700;
 text-align:center;
 }
 
-.title{
-font-size:34px;
-font-weight:700;
-}
-
-.subtitle{
+.subtitle {
+text-align:center;
 color:#666;
-margin-top:10px;
+margin-top:8px;
 }
 
-.place{
+.place-card {
 background:white;
 padding:20px;
 border-radius:14px;
-box-shadow:0px 4px 12px rgba(0,0,0,0.07);
+box-shadow:0 5px 15px rgba(0,0,0,0.06);
 margin-bottom:15px;
+}
+
+button[kind="primary"] {
+background:#6c63ff;
+border-radius:10px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------
+# --------------------------
+# SESSION STATE
+# --------------------------
+
+if "step" not in st.session_state:
+    st.session_state.step = 1
+
+if "route" not in st.session_state:
+    st.session_state.route = None
+
+# --------------------------
 # HEADER
-# ---------------------------
+# --------------------------
 
 st.markdown("""
 <div class="card">
 <div class="title">🌍 AI Travel Planner</div>
-<div class="subtitle">Создай идеальный маршрут путешествия</div>
+<div class="subtitle">
+Создайте персональный маршрут путешествия
+</div>
 </div>
 """, unsafe_allow_html=True)
 
-# ---------------------------
-# INPUT FIELDS
-# ---------------------------
+progress = st.session_state.step / 3
+st.progress(progress)
 
-city = st.text_input("🏙 Город для путешествия")
+# --------------------------
+# STEP 1 — CITY
+# --------------------------
 
-pace = st.selectbox(
-    "⚡ Темп отдыха",
-    ["Активный", "Размеренный", "Смешанный"]
-)
+if st.session_state.step == 1:
 
-interest = st.selectbox(
-    "🎯 Основной интерес",
-    ["История и архитектура", "Еда и рестораны", "Природа", "Музеи", "Ночная жизнь"]
-)
+    st.markdown("### 🏙 Шаг 1. Выберите город")
 
-company = st.selectbox(
-    "👥 С кем путешествуете",
-    ["Один", "Вдвоем", "С семьей"]
-)
+    city = st.text_input(
+        "Введите город",
+        placeholder="Например: Санкт-Петербург"
+    )
 
-# ---------------------------
+    if st.button("Далее"):
+
+        if city:
+            st.session_state.city = city
+            st.session_state.step = 2
+            st.rerun()
+
+        else:
+            st.warning("Введите город")
+
+# --------------------------
+# STEP 2 — QUIZ
+# --------------------------
+
+elif st.session_state.step == 2:
+
+    st.markdown("### 🧭 Шаг 2. Расскажите о предпочтениях")
+
+    pace = st.radio(
+        "Какой темп отдыха предпочитаете?",
+        ["Активный", "Размеренный", "Смешанный"]
+    )
+
+    interest = st.selectbox(
+        "Что вас интересует больше всего?",
+        [
+            "История и архитектура",
+            "Еда и рестораны",
+            "Природа и парки",
+            "Музеи",
+            "Ночная жизнь"
+        ]
+    )
+
+    company = st.selectbox(
+        "С кем путешествуете?",
+        [
+            "Один",
+            "Вдвоем",
+            "С семьей"
+        ]
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("Назад"):
+            st.session_state.step = 1
+            st.rerun()
+
+    with col2:
+        if st.button("Сгенерировать маршрут"):
+
+            st.session_state.answers = {
+                "pace": pace,
+                "interest": interest,
+                "company": company
+            }
+
+            st.session_state.step = 3
+            st.rerun()
+
+# --------------------------
 # DEEPSEEK CLIENT
-# ---------------------------
+# --------------------------
 
 client = OpenAI(
-    api_key=os.getenv("sk-6c4320e4cf78468484e17cc30e018c84"),  # вставьте ваш ключ в переменную окружения
+    api_key=os.getenv("sk-6c4320e4cf78468484e17cc30e018c84"),
     base_url="https://api.deepseek.com"
 )
 
-# ---------------------------
-# AI GENERATION FUNCTION
-# ---------------------------
+# --------------------------
+# AI FUNCTION
+# --------------------------
 
-def generate_route(city, pace, interest, company):
+def generate_route(city, answers):
 
     prompt = f"""
 Создай туристический маршрут по городу {city}.
 
 Предпочтения пользователя:
-Темп отдыха: {pace}
-Интересы: {interest}
-Компания: {company}
+Темп: {answers['pace']}
+Интерес: {answers['interest']}
+Компания: {answers['company']}
 
-Верни результат строго в JSON формате:
+Верни ответ строго в JSON:
 
 [
 {{"name":"место","desc":"описание","time":60}},
 {{"name":"место","desc":"описание","time":90}}
 ]
 
-Список из 5 мест.
+5 мест.
 """
 
     response = client.chat.completions.create(
         model="deepseek-chat",
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role":"user","content":prompt}]
     )
 
-    result = response.choices[0].message.content
+    text = response.choices[0].message.content
 
-    return json.loads(result)
+    return json.loads(text)
 
-# ---------------------------
-# GENERATE BUTTON
-# ---------------------------
+# --------------------------
+# STEP 3 — RESULT
+# --------------------------
 
-if st.button("✨ Сгенерировать маршрут"):
+elif st.session_state.step == 3:
 
-    if not city:
-        st.warning("Введите город")
-    else:
+    st.markdown("### 🤖 Генерация маршрута")
 
-        with st.spinner("🤖 ИИ подбирает лучшие места..."):
+    if st.session_state.route is None:
+
+        with st.spinner("ИИ подбирает лучшие места..."):
 
             try:
 
-                route = generate_route(city, pace, interest, company)
+                route = generate_route(
+                    st.session_state.city,
+                    st.session_state.answers
+                )
 
-                st.session_state["route"] = route
+                st.session_state.route = route
 
-            except Exception as e:
-
+            except:
                 st.error("Ошибка генерации маршрута")
-                st.write(e)
 
-# ---------------------------
-# SHOW ROUTE
-# ---------------------------
+    if st.session_state.route:
 
-if "route" in st.session_state:
+        st.markdown("## 📍 Ваш маршрут")
 
-    st.markdown("## 📍 Ваш маршрут")
+        for place in st.session_state.route:
 
-    for place in st.session_state["route"]:
+            st.markdown(f"""
+            <div class="place-card">
+            <h3>📌 {place["name"]}</h3>
+            <p>{place["desc"]}</p>
+            ⏱ Время посещения: {place["time"]} мин
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.markdown(f"""
-        <div class="place">
-        <h3>📌 {place["name"]}</h3>
-        <p>{place["desc"]}</p>
-        ⏱ Рекомендуемое время: {place["time"]} мин
-        </div>
-        """, unsafe_allow_html=True)
+        if st.button("🔄 Создать новый маршрут"):
+
+            st.session_state.step = 1
+            st.session_state.route = None
+            st.rerun()
